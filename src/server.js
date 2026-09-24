@@ -5,6 +5,8 @@ const one=require('./middleware/one')
 const two=require('./middleware/two')
 const three=require('./middleware/three')
 const app = express()
+const cookieparser=require('cookie-parser')
+app.use(cookieparser)
 // sepecify the format will be in json
 app.use(express.json())
 app.use(express.static('public'))
@@ -34,6 +36,30 @@ app.post('/create/user',async(req,res,next)=>{
     }
 })
 
+// login api
+app.post('/read/user',async(req,res,next)=>{
+    try{
+        const token="randomgeneratedtoken";
+        const user=User.findOne({email: req.body.email})
+        if(user.password==req.body.password)
+        {
+            res.cookie("token",token,{
+                httpOnly:true,
+                secure:false,
+                sameSite: "lax",
+            }
+            )
+            // res.status(200).json({
+            //     "token": token
+            // })
+        }
+    }catch(error){
+        res.status(500).json({
+        "message":error.message
+        })
+    }
+})
+
 // read
 app.get('/read/user',async(req,res,next)=>{
     try{
@@ -55,9 +81,70 @@ app.get('/read/user',async(req,res,next)=>{
 // delete
 app.delete('/delete/user',async(req,res,next)=>{
     try{
-        // delete a user
+        // password check
+        //get password
+        const password=req.query.password;
+        // get the requesting user information
+        const myuser=await User.findById(req.query.id);
+        
+        if(myuser.password==password){
+         console.log("password matched")
+          const user=await User.findByIdAndDelete(req.query.id);//delete user in database
+        res.status(201).json({
+            "sucess":true,
+            data:user
+        })
+        //  return res.status(200).json({
+        // message:"password matched"
+        //  })
+        }
+        else{
+            console.log("password not matched")
+            return res.status(403).json({
+            message:"passwword not matched"
+            })
+        }
+        // // delete a user
+        // console.log(req.query.id)
+        // const user=await User.findByIdAndDelete(req.query.id);//delete user in database
+        // res.status(201).json({
+        //     "sucess":true,
+        //     data:user
+        // })
+    // }
+    catch(error){
+        res.status(400).json({
+            "sucess":false,
+            error:error.message
+        })
+    }
+})
+
+//update all
+app.put('/update/user:id',async(req,res,next)=>{
+    try{
+        // update all user
         console.log(req.query.id)
-        const user=await User.findByIdAndDelete(req.query.id);//delete user in database
+        const user=await User.findByIdAndUpdate(req.query.id,req.body,{new:true});//delete user in database
+        res.status(201).json({
+            "sucess":true,
+            data:user
+        })
+    }
+    catch(error){
+        res.status(400).json({
+            "sucess":false,
+            error:error.message
+        })
+    }
+})
+
+// update one
+app.patch('/update/user',async(req,res,next)=>{
+    try{
+        // update all user
+        console.log(req.query.id)
+        const user=await User.findByIdAndUpdate(req.query.id,req.body,{new:true});//delete user in database
         res.status(201).json({
             "sucess":true,
             data:user
